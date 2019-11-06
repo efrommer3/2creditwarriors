@@ -75,6 +75,7 @@ Main:
 	; execute CLI &B0010 to disable the timer interrupt.
 	
 	call FindMin
+	STORE SonerNumber_TR
 	call TowardReflector
 	
 
@@ -259,11 +260,14 @@ loadAngle_Return:
 DesiredTravelDist: DW 0 ;The distance DE2Bot needs to travel until it is is within 1ft(305mm) distance from the reflector
 Speed: DW 512  ;512mm/s (2^9). Subject to change based on testing. WHEN CHANGING THIS VALUE MAKE SURE TO CHANGE THE SHIFT VALUE WHEN CALCULATING DesiredTravelDist/speed.
 TimeOfTravel: DW 0
+SonerNumber_TR: DW 0
 
 TowardReflector:
+	
 	LOAD Zero
 	STORE DVEL ;make sure to stop the DE2Bot before it turns to the nearest reflector
 	
+	LOAD SonerNumber_TR
 	CALL loadAngle 
 	Store DTHETA ;turn the DE2Bot so that its facing the reflector
 	
