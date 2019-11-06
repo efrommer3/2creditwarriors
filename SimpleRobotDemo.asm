@@ -75,7 +75,11 @@ Main:
 	; If you want to take manual control of the robot,
 	; execute CLI &B0010 to disable the timer interrupt.
 	
+	LOAD InitialMask
+	OUT SONAREN
+	CALL WAIT1
 	call FindMin
+	OUT SSEG1
 	store loadAngle_sonarNumber
 	call loadAngle
 	store DTheta
@@ -118,8 +122,12 @@ FindMin:
 	STORE FindMin_currentSONAREN
 ;while(currentSONAREN != 0){
 FindMin_While:
+	LOAD FindMin_currentSonar
 	JZERO findMin_return
 ;	if (AC = (currentSONAREN % 2)) {
+		LOAD FindMin_currentSonar
+		OUT SSEG1
+		CALL WAIT1
 		CALL Mod2	;AC = currentSONAREN % 2
 		JZERO findMin_exitExternalIF
 ;		loadDistance(currentSonar); // AC = distance from sonar
@@ -872,6 +880,8 @@ Mask6:    DW &B01000000
 Mask7:    DW &B10000000
 LowByte:  DW &HFF      ; binary 00000000 1111111
 LowNibl:  DW &HF       ; 0000 0000 0000 1111
+InitialMask: DW &B00011110
+
 
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
