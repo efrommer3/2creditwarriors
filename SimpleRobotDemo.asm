@@ -92,9 +92,10 @@ Main:
 	;Store DTheta
 	
 	
-	LOAD InitialMask
-	OUT SONAREN
-	Call Wait1
+	;LOAD InitialMask
+	;OUT SONAREN
+	;Call Wait1
+	CALL Circle
 
 	
 FINDMIN:		
@@ -139,6 +140,7 @@ SKIP3:
 	IN theta
 	ADD MIN1
 	store DTheta
+	call Circle
 	
 	
 
@@ -147,7 +149,44 @@ SKIP3:
 	
 EXIT: 
 	JUMP EXIT
+
+SPEED: DW 200
+ROTATESPEED: DW 150;150
+ANGLE: DW 60
+Circle:
+	LOAD Mask5
+	OUT SONAREN
+	CALL WAIT1
+	IN theta
+	Add Deg90
+	store DTheta
+	CALL WAIT1
+	CALL WAIT1
+
+
+Check:
+	IN DIST5
+	SUB FT1
+	JPOS ROTATELEFT
+	JUMP FORWARD
 	
+FORWARD:
+	LOAD SPEED
+	STORE DVEL
+	IN theta
+	STORE DTheta
+	JUMP CHECK
+ROTATELEFT:
+	LOAD ROTATESPEED
+	STORE DVEL
+	IN theta
+	SUB	ANGLE
+	STORE DTheta
+	JUMP CHECK
+
+RETURN
+
+		
 
 	; note that the movement API will still be running during this
 	; infinite loop, because it uses the timer interrupt, so the
@@ -761,6 +800,7 @@ InitialMask: DW &B00011110
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
 HalfMeter: DW 481      ; ~0.5m in 1.04mm units
+FT1: 	  DW 298
 Ft2:      DW 586       ; ~2ft in 1.04mm units
 Ft3:      DW 879
 Ft4:      DW 1172
