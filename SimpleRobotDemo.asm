@@ -63,6 +63,7 @@ WaitForUser:
 ;***************************************************************
 ;* Main code
 ;***************************************************************
+
 Main:
 	OUT    RESETPOS    ; reset the odometry to 0,0,0
 	; configure timer interrupt for the movement control code
@@ -75,6 +76,11 @@ Main:
 	; execute CLI &B0010 to disable the timer interrupt.
 	
 	call FindMin
+	store loadAngle_sonarNumber
+	call loadAngle
+	store DTheta
+	
+	
 	
 	
 
