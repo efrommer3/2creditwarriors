@@ -101,6 +101,8 @@ Main:
 	CALL WAIT1
 	CALL WAIT1
 	CALL TowardReflector
+	CALL WAIT1
+	CALL Circle
 	
 EXIT: 
 	JUMP EXIT
@@ -140,12 +142,13 @@ skip1:
 	STORE ANGLE_FMR
 	LOAD DIST2_FMR
 	STORE TEMP_FMR
-	JUMP skip2;
+	JUMP skip22 
 skip11: 
 	ADD Zero
 	STORE ANGLE_FMR
 	LOADI 44
 	STORE ANGLE_FMR
+skip22:
 	LOAD TEMP_FMR
 	SUB DIST3_FMR
 	JPOS skip2 ; jump if TEMP_FMR > DIST3_FMR
@@ -233,7 +236,6 @@ Return
 ;*********************************************************************************************
 ;**This subroutine makes the robot travel toward the reflector until it is within 1ft(305 mm) distance from the reflector
 ;*********************************************************************************************
-;Variables
 DesiredTravelDist: DW 0 ;The distance DE2Bot needs to travel until it is is within 1ft(305mm) distance from the reflector
 Speed: DW 512  ;512mm/s (2^9). Subject to change based on testing. WHEN CHANGING THIS VALUE MAKE SURE TO CHANGE THE SHIFT VALUE WHEN CALCULATING DesiredTravelDist/speed.
 TimeOfTravel: DW 0
@@ -286,41 +288,99 @@ TowardReflector:
 
 ;**********************************************************************************************
 
-SPEED: DW 200
-ROTATESPEED: DW 150;150
-ANGLE: DW 60
+SPEEDcircle: DW 200;200
+ROTATESPEED: DW 250;150
+ANGLEcircle: DW 12;5
+ANGLESlight: DW 10;2
+oneANDTHIRD: DW 340;380
+Circle_threshtAngle: DW 30
+Circle_beginningAngle: DW 0
 Circle:
+	LOAD ft5
+	store DetectReflector_minDistance
 	LOAD Mask5
+	ADDI 1
 	OUT SONAREN
 	CALL WAIT1
 	IN theta
 	Add Deg90
 	store DTheta
+	store Circle_beginningAngle
 	CALL WAIT1
 	CALL WAIT1
 
 
 Check:
+	in theta
+	SUB Circle_beginningAngle
+	ADD Circle_threshtAngle
+	JPOS SKIP_DetectReflector
+	CALL DetectReflector
+
+SKIP_DetectReflector:	
+	IN DIST5
+	SUB oneANDTHIRD
+	JPOS ROTATE
 	IN DIST5
 	SUB FT1
-	JPOS ROTATELEFT
+	JPOS SLIGHTROTATE
 	JUMP FORWARD
+		
 	
 FORWARD:
-	LOAD SPEED
+	LOAD SPEEDcircle
 	STORE DVEL
 	IN theta
 	STORE DTheta
 	JUMP CHECK
-ROTATELEFT:
+ROTATE:
 	LOAD ROTATESPEED
 	STORE DVEL
 	IN theta
-	SUB	ANGLE
+	SUB	ANGLEcircle
 	STORE DTheta
 	JUMP CHECK
+	
+SLIGHTROTATE:
+	LOAD ROTATESPEED
+	STORE DVEL
+	IN theta
+	SUB	ANGLESlight
+	STORE DTheta
+	JUMP CHECK
+	
+	
 
 RETURN
+
+;***********************************************************
+
+
+DetectReflector_minDistance: DW 0
+DetectReflector_currentDistance: DW 0
+DetectReflector_minAngle: DW 0
+DetectReflector:
+	IN DIST0
+	STORE DetectReflector_currentDistance
+	SUB DetectReflector_minDistance
+	JPOS DetectReflector_Skip
+	LOAD DetectReflector_currentDistance
+	STORE DetectReflector_minDistance
+	IN theta
+	ADD Deg90
+	Store DetectReflector_minAngle
+
+DetectReflector_Skip:
+	Return
+	
+	
+	
+	
+	
+	
+
+	
+
 
 ;***********************************************************
 	
@@ -939,9 +999,11 @@ InitialMask: DW &B00011110
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
 HalfMeter: DW 481      ; ~0.5m in 1.04mm units
+FT1:	  DW 293
 Ft2:      DW 586       ; ~2ft in 1.04mm units
 Ft3:      DW 879
 Ft4:      DW 1172
+ft5:	DW 1465
 Deg90:    DW 90        ; 90 degrees in odometer units
 Deg180:   DW 180       ; 180
 Deg270:   DW 270       ; 270
