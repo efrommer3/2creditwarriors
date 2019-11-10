@@ -285,7 +285,43 @@ TowardReflector:
 
 ;**********************************************************************************************
 
+SPEED: DW 200
+ROTATESPEED: DW 150;150
+ANGLE: DW 60
+Circle:
+	LOAD Mask5
+	OUT SONAREN
+	CALL WAIT1
+	IN theta
+	Add Deg90
+	store DTheta
+	CALL WAIT1
+	CALL WAIT1
+
+
+Check:
+	IN DIST5
+	SUB FT1
+	JPOS ROTATELEFT
+	JUMP FORWARD
 	
+FORWARD:
+	LOAD SPEED
+	STORE DVEL
+	IN theta
+	STORE DTheta
+	JUMP CHECK
+ROTATELEFT:
+	LOAD ROTATESPEED
+	STORE DVEL
+	IN theta
+	SUB	ANGLE
+	STORE DTheta
+	JUMP CHECK
+
+RETURN
+
+;***********************************************************
 	
 
 	
