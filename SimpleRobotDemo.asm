@@ -77,22 +77,338 @@ Main:
 	
 
 	
-	
-	LOAD Mask5
-	OUT SONAREN
-InfLoop: 
+	;; Initial testing
+	;LOAD Mask5
+	;OUT SONAREN
+;InfLoop: 
 	;code starts here
-	IN theta
-	addi 15
-	store DTheta
-	IN DIST5
-	SUB FourFT
-	JPOS InfLoop
-	IN Theta
-	Store DTheta
+	;IN theta
+	;addi 15
+	;store DTheta
+	;IN DIST5
+	;SUB FourFT
+	;JPOS InfLoop
+	;IN Theta
+	;Store DTheta
+	
+	
+	LOAD InitialMask
+	OUT SONAREN
+	Call Wait1
+	Call FINDMINANDROTATE
+
+	STORE Distance_TR
+	CALL WAIT1
+	CALL WAIT1
+	CALL TowardReflector
+	CALL WAIT1
+	CALL Circle
 	
 EXIT: 
 	JUMP EXIT
+
+
+FINDMINANDROTATE:		
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;new version of FINDMINANDROTATE (by HEE)
+;;local variables to store DIST1~DIST4
+DIST1_FMR: DW 0
+DIST2_FMR: DW 0
+DIST3_FMR: DW 0
+DIST4_FMR: DW 0
+TEMP_FMR: DW 0
+ANGLE_FMR: DW 0
+
+IN DIST1
+STORE DIST1_FMR
+IN DIST2
+STORE DIST2_FMR
+IN DIST3
+STORE DIST3_FMR
+IN DIST4
+STORE DIST4_FMR
+
+
+LOAD DIST1_FMR
+SUB DIST2_FMR
+JPOS skip1 ;jump if DIST1>DIST2
+LOAD DIST1_FMR
+STORE TEMP_FMR
+JUMP skip11
+
+skip1: 
+	ADD Zero
+	STORE ANGLE_FMR
+	LOADI 12
+	STORE ANGLE_FMR
+	LOAD DIST2_FMR
+	STORE TEMP_FMR
+	JUMP skip22 
+skip11: 
+	ADD Zero
+	STORE ANGLE_FMR
+	LOADI 44
+	STORE ANGLE_FMR
+skip22:
+	LOAD TEMP_FMR
+	SUB DIST3_FMR
+	JPOS skip2 ; jump if TEMP_FMR > DIST3_FMR
+	JUMP skip3 ;if not 
+skip2:
+	ADD Zero
+	STORE ANGLE_FMR
+	LOADI -12
+	STORE ANGLE_FMR
+	LOAD DIST3_FMR
+	STORE TEMP_FMR
+skip3: 
+	LOAD TEMP_FMR
+	SUB DIST4_FMR
+	JPOS skip4 ;jump if TEMP_FMR > DIST4_FMR
+	JUMP skip5
+skip4:
+	ADD Zero
+	STORE ANGLE_FMR
+	LOADI -44
+	STORE ANGLE_FMR
+	LOAD DIST4_FMR
+	STORE TEMP_FMR
+	JUMP skip5
+
+skip5: 
+	IN theta
+	ADD ANGLE_FMR
+	store DTheta
+	LOAD TEMP_FMR
+	
+Return
+	
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+	;IN DIST1
+	;OUT SSEG1
+	;STORE TEMP1
+	;IN DIST2
+	
+	;SUB TEMP1	;DIST2 - DIST1
+	;STORE TEMP1 ;;temp added (HEE)
+	;JPOS SKIP1 ;Jump if DIST2 > DIST1
+	;AND Zero
+	;ADDI 12
+	;STORE MIN1
+	;IN DIST2
+	
+	;STORE TEMP1
+;SKIP1:
+	
+	;IN DIST3
+	
+	;SUB TEMP1	;DIST3 - DIST1
+	;STORE TEMP1 ;;temp added (HEE)
+	;JPOS SKIP2 ;
+	;AND Zero
+	;ADDI -12
+	;STORE MIN1
+	;IN DIST3
+	
+	;STORE TEMP1
+;SKIP2:
+	
+	;IN DIST4
+	
+	;SUB TEMP1	;DIST2 - DIST1
+	;STORE TEMP1 ;;temp added (HEE)
+	;JPOS SKIP3
+	;AND Zero
+	;ADDI -44
+	;STORE MIN1
+	;IN DIST4
+	;STORE TEMP1
+;SKIP3:
+	;AND Zero
+	;IN theta
+	;ADD MIN1
+	;store DTheta
+	;LOAD TEMP1
+	
+;Return
+	
+
+;*********************************************************************************************
+;**This subroutine makes the robot travel toward the reflector until it is within 1ft(305 mm) distance from the reflector
+;*********************************************************************************************
+DesiredTravelDist: DW 0 ;The distance DE2Bot needs to travel until it is is within 1ft(305mm) distance from the reflector
+Speed: DW 512  ;512mm/s (2^9). Subject to change based on testing. WHEN CHANGING THIS VALUE MAKE SURE TO CHANGE THE SHIFT VALUE WHEN CALCULATING DesiredTravelDist/speed.
+TimeOfTravel: DW 0
+Distance_TR: DW 0
+TowardReflector_temp: DW 0
+
+TowardReflector:
+	
+	LOAD Zero
+	STORE DVEL ;make sure to stop the DE2Bot before it turns to the nearest reflector
+	;LOAD SonerNumber_TR
+	;CALL loadAngle 
+	;Store DTHETA ;turn the DE2Bot so that its facing the reflector
+	
+	LOAD Distance_TR
+	ADDI -100 ; subtract 1 ft.
+	STORE DesiredTravelDist
+	
+	;***page 12 of DE2 Manual*** 
+	;distance required to stop can be estimated b vel^2/1024. Similarly distance required to reach a certain velocity from 0 is vel^2/1024.
+	;three stage(accelerate, constantVel, deaccelerate)
+	;speed/1024 [s] for accelerate and deaccelerate, DesiredTravelDist/speed-2*speed/1024 [s] for constantVel
+	;TOTAL TIME: (2*speed/1024) + (DesiredTravelDist/speed-2*speed/1024) [s] (NOT SURE)	
+	LOAD DesiredTravelDist
+	SHIFT -6 ;DesiredTravelDist/speed
+	STORE TimeOfTravel
+	
+	LOAD Zero
+	OUT TIMER ;reset Timer
+	LOAD Speed
+	STORE DVEL
+	
+	LoopTR:
+	IN TIMER
+	SUB TimeOfTravel
+	JNEG LoopTR
+	
+	;stop the DE2Bot
+	LOAD Zero
+	STORE DVEL
+	
+	
+	
+
+	STOP: 
+		LOAD Zero
+		STORE DVEL
+
+	RETURN
+
+;**********************************************************************************************
+
+SPEEDcircle: DW 200;200
+ROTATESPEED: DW 250;150
+ANGLEcircle: DW 12;5
+ANGLESlight: DW 10;2
+oneANDTHIRD: DW 340;380
+Circle_threshtAngle: DW 30
+Circle_beginningAngle: DW 0
+Circle_endAngle: DW 0
+Circle:
+	LOAD ft5
+	store DetectReflector_minDistance
+	LOAD Mask5
+	ADDI 1
+	OUT SONAREN
+	CALL WAIT1
+	IN theta
+	Add Deg90
+	store DTheta
+	store Circle_beginningAngle
+	addi 5
+	store Circle_endAngle
+	
+	CALL WAIT1
+	CALL WAIT1
+	store Circle_beginningAngle
+	addi 5
+	store Circle_endAngle
+
+Check:
+	;in theta
+	;SUB Circle_beginningAngle
+	;ADD Circle_threshtAngle
+	;JPOS SKIP_DetectReflector
+	IN theta 
+	sub Circle_endAngle
+	JPOS notdone
+	LOADI 1
+	out LEDS
+	IN theta
+	sub Circle_beginningAngle
+	JNEG notdone
+	LOADI
+	Jump STOPCircle
+	
+notdone:	
+	CALL DetectReflector
+
+SKIP_DetectReflector:	
+	IN DIST5
+	SUB oneANDTHIRD
+	JPOS ROTATE
+	IN DIST5
+	SUB FT1
+	JPOS SLIGHTROTATE
+	JUMP FORWARD
+		
+	
+FORWARD:
+	LOAD SPEEDcircle
+	STORE DVEL
+	IN theta
+	STORE DTheta
+	JUMP CHECK
+ROTATE:
+	LOAD ROTATESPEED
+	STORE DVEL
+	IN theta
+	SUB	ANGLEcircle
+	STORE DTheta
+	JUMP CHECK
+	
+SLIGHTROTATE:
+	LOAD ROTATESPEED
+	STORE DVEL
+	IN theta
+	SUB	ANGLESlight
+	STORE DTheta
+	JUMP CHECK
+	
+STOPCircle:
+	AND zero
+	store DVEL
+	
+	
+
+RETURN
+
+;***********************************************************
+
+
+DetectReflector_minDistance: DW 0
+DetectReflector_currentDistance: DW 0
+DetectReflector_minAngle: DW 0
+DetectReflector:
+	IN DIST0
+	STORE DetectReflector_currentDistance
+	SUB DetectReflector_minDistance
+	JPOS DetectReflector_Skip
+	LOAD DetectReflector_currentDistance
+	STORE DetectReflector_minDistance
+	OUT SSEG2
+	IN theta
+	ADD Deg90
+	Store DetectReflector_minAngle
+	OUT SSEG1
+
+DetectReflector_Skip:
+	Return
+	
+	
+	
+	
+	
+	
+
+	
+
+
+;***********************************************************
+	
+
 	
 
 	; note that the movement API will still be running during this
@@ -686,7 +1002,8 @@ Seven:    DW 7
 Eight:    DW 8
 Nine:     DW 9
 Ten:      DW 10
-
+TEMP1: DW 0 
+MIN1: DW 44 
 FourFT: DW 1219
 ; Some bit masks.
 ; Masks of multiple bits can be constructed by ORing these
@@ -701,13 +1018,16 @@ Mask6:    DW &B01000000
 Mask7:    DW &B10000000
 LowByte:  DW &HFF      ; binary 00000000 1111111
 LowNibl:  DW &HF       ; 0000 0000 0000 1111
+InitialMask: DW &B00001100
 
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
 HalfMeter: DW 481      ; ~0.5m in 1.04mm units
+FT1:	  DW 293
 Ft2:      DW 586       ; ~2ft in 1.04mm units
 Ft3:      DW 879
 Ft4:      DW 1172
+ft5:	DW 1465
 Deg90:    DW 90        ; 90 degrees in odometer units
 Deg180:   DW 180       ; 180
 Deg270:   DW 270       ; 270
