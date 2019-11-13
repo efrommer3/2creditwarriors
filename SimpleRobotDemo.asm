@@ -326,15 +326,8 @@ Check:
 	Store Circle_difference
 	JPOS notnegative
 	JZERO notdone
-	add Circle_360 
+	call abs 
 	Store Circle_difference ;;;; look here RED ALERT
-	load Circle_counter
-	sub Circle_difference
-	Store Circle_counter
-	out SSEG2
-	JNEG STOPCircle
-	JUMP notdone
-	
 notnegative:
 	load Circle_counter
 	sub Circle_difference
