@@ -95,14 +95,17 @@ Main:
 	LOAD InitialMask
 	OUT SONAREN
 	Call Wait1
-	Call FINDMINANDROTATE
+	;Call FINDMINANDROTATE
 
-	STORE Distance_TR
-	CALL WAIT1
-	CALL WAIT1
-	CALL TowardReflector
-	CALL WAIT1
-	CALL Circle
+	;STORE Distance_TR
+	;CALL WAIT1
+	;CALL WAIT1
+	;CALL TowardReflector
+	
+	CALL InitialReflectorDetection
+	;CALL WAIT1
+	;CALL Circle
+	
 	
 EXIT: 
 	JUMP EXIT
@@ -111,78 +114,30 @@ EXIT:
 FINDMINANDROTATE:		
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;new version of FINDMINANDROTATE (by HEE)
 ;;local variables to store DIST1~DIST4
-DIST1_FMR: DW 0
 DIST2_FMR: DW 0
 DIST3_FMR: DW 0
-DIST4_FMR: DW 0
-TEMP_FMR: DW 0
-ANGLE_FMR: DW 0
+MINANGLE_FMR: DW 0
 
-IN DIST1
-STORE DIST1_FMR
-IN DIST2
-STORE DIST2_FMR
-IN DIST3
-STORE DIST3_FMR
-IN DIST4
-STORE DIST4_FMR
-
-
-LOAD DIST1_FMR
-SUB DIST2_FMR
-JPOS skip1 ;jump if DIST1>DIST2
-LOAD DIST1_FMR
-STORE TEMP_FMR
-JUMP skip11
-
-skip1: 
-	ADD Zero
-	STORE ANGLE_FMR
-	LOADI 12
-	STORE ANGLE_FMR
+	LOAD DIST2 
+	STORE DIST2_FMR
+	LOAD DIST3
+	STORE DIST3_FMR
+	
 	LOAD DIST2_FMR
-	STORE TEMP_FMR
-	JUMP skip22 
-skip11: 
-	ADD Zero
-	STORE ANGLE_FMR
-	LOADI 44
-	STORE ANGLE_FMR
-skip22:
-	LOAD TEMP_FMR
-	SUB DIST3_FMR
-	JPOS skip2 ; jump if TEMP_FMR > DIST3_FMR
-	JUMP skip3 ;if not 
-skip2:
-	ADD Zero
-	STORE ANGLE_FMR
+	SUB DIST3_FMR 
+	JNEG FMR_JUMP ;if dist2 < dist3 
 	LOADI -12
-	STORE ANGLE_FMR
-	LOAD DIST3_FMR
-	STORE TEMP_FMR
-skip3: 
-	LOAD TEMP_FMR
-	SUB DIST4_FMR
-	JPOS skip4 ;jump if TEMP_FMR > DIST4_FMR
-	JUMP skip5
-skip4:
-	ADD Zero
-	STORE ANGLE_FMR
-	LOADI -44
-	STORE ANGLE_FMR
-	LOAD DIST4_FMR
-	STORE TEMP_FMR
-	JUMP skip5
+	STORE MINANGLE_FMR
+	FMR_JUMP:
+		LOADI 12
+		STORE MINANGLE_FMR
+	
 
-skip5: 
+	LOAD Zero
 	IN theta
-	ADD ANGLE_FMR
-	store DTheta
-	LOAD TEMP_FMR
-	
-Return
-	
-	
+	ADD MINANGLE_FMR
+	STORE DTheta
+
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 	;IN DIST1
 	;OUT SSEG1
@@ -232,7 +187,63 @@ Return
 	
 ;Return
 	
+;*********************************************************************************************
 
+InitialReflectorDetection: 
+	LOAD Zero
+	Store DTheta
+	Store DVel
+	
+IRD_Loop: 
+	Call SonarDetection
+	LOAD SD_detected
+	SUB One
+	JZERO callFindMinRotate    ;if detected is true
+	Load speed 			       ;if detected is false,
+	STORE DVel
+	JUMP IRD_Loop
+	
+callFindMinRotate:
+	LOAD Zero 
+	Store Dvel ;stop the bot
+	
+	Call Wait1
+	Call FINDMINANDROTATE
+	Call Wait1
+	Call TowardReflector
+return
+
+
+
+
+;********************************************************************************************
+SD_detected: DW 0
+SD_speed: DW 512
+SonarDetection: 
+	LOAD SD_speed ;slow the speed while checking for sonar readings.
+	STORE DVel
+	
+	Call Wait20 ; wait for 0.20 seconds to allow sonar distance readings to update to DIST2,3
+	
+	LOAD Zero
+	Store SD_detected ;initialize to false
+	
+	IN DIST2
+	SUB &H7FFFF
+	JNEG SD_DETECTED_JUMP
+	IN DIST3
+	SUB &H7FFFF
+	JNEG SD_DETECTED_JUMP
+	return ;will stay false
+
+SD_DETECTED_JUMP:
+	LOAD One
+	Store SD_detected ;true
+	return 
+
+
+
+;*********************************************************************************************
 ;*********************************************************************************************
 ;**This subroutine makes the robot travel toward the reflector until it is within 1ft(305 mm) distance from the reflector
 ;*********************************************************************************************
@@ -884,6 +895,15 @@ Wloop:
 	JNEG   Wloop
 	RETURN
 
+Wait20: 
+	OUT    TIMER
+Wloop20:
+	IN     TIMER
+	OUT    XLEDS       ; User-feedback that a pause is occurring.
+	ADDI   -2         ; 0.20 second at 10Hz.
+	JNEG   Wloop20
+	RETURN
+
 ; This subroutine will get the battery voltage,
 ; and stop program execution if it is too low.
 ; SetupI2C must be executed prior to this.
@@ -994,7 +1014,7 @@ Mask6:    DW &B01000000
 Mask7:    DW &B10000000
 LowByte:  DW &HFF      ; binary 00000000 1111111
 LowNibl:  DW &HF       ; 0000 0000 0000 1111
-InitialMask: DW &B00011110
+InitialMask: DW &B00001100
 
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
