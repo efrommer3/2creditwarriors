@@ -296,6 +296,10 @@ oneANDTHIRD: DW 340;380
 Circle_threshtAngle: DW 30
 Circle_beginningAngle: DW 0
 Circle_endAngle: DW 0
+Circle_counter: DW 360
+Circle_360: DW 360
+Circle_difference: DW 0
+
 Circle:
 	LOAD ft5
 	store DetectReflector_minDistance
@@ -306,33 +310,60 @@ Circle:
 	IN theta
 	Add Deg90
 	store DTheta
-	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
+	
 	
 	CALL WAIT1
 	CALL WAIT1
+	in theta
 	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
+	
 
 Check:
+	in theta
+	store Circle_endAngle
+	load Circle_beginningAngle
+	sub Circle_endAngle
+	Store Circle_difference
+	JPOS notnegative
+	JZERO notdone
+	add Circle_360 
+	Store Circle_difference ;;;; look here RED ALERT
+	load Circle_counter
+	sub Circle_difference
+	Store Circle_counter
+	out SSEG2
+	JNEG STOPCircle
+	JUMP notdone
+	
+notnegative:
+	load Circle_counter
+	sub Circle_difference
+	STORE Circle_counter
+	OUT SSEG2
+	JNEG STOPCircle
+	
+	
+	;load Circle_endAngle
+	;store Circle_beginningAngle
 	;in theta
 	;SUB Circle_beginningAngle
 	;ADD Circle_threshtAngle
 	;JPOS SKIP_DetectReflector
-	IN theta 
-	sub Circle_endAngle
-	JPOS notdone
-	LOADI 1
-	out LEDS
-	IN theta
-	sub Circle_beginningAngle
-	JNEG notdone
-	LOADI
-	Jump STOPCircle
+	;IN theta 
+	;sub Circle_endAngle
+	;JPOS notdone
+	;LOADI 1
+	;out LEDS
+	;IN theta
+	;sub Circle_beginningAngle
+	;JPOS notdone
+	;LOADI 2
+	;OUT LEDS
+	;Jump STOPCircle
 	
-notdone:	
+notdone:
+	load Circle_endAngle
+	store Circle_beginningAngle	
 	CALL DetectReflector
 
 SKIP_DetectReflector:	
@@ -388,7 +419,7 @@ DetectReflector:
 	JPOS DetectReflector_Skip
 	LOAD DetectReflector_currentDistance
 	STORE DetectReflector_minDistance
-	OUT SSEG2
+	;OUT SSEG2
 	IN theta
 	ADD Deg90
 	Store DetectReflector_minAngle
