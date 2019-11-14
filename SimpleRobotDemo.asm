@@ -295,8 +295,11 @@ ANGLESlight: DW 10;2
 oneANDTHIRD: DW 340;380
 Circle_threshtAngle: DW 30
 Circle_beginningAngle: DW 0
-Circle_endAngle: DW 0
+Circle_DegreeCount: DW 0
+
 Circle:
+	LOAD Zero ;initialize degreecount to zero whenever circle is called
+	Store Circle_DegreeCount
 	LOAD ft5
 	store DetectReflector_minDistance
 	LOAD Mask5
@@ -307,32 +310,20 @@ Circle:
 	Add Deg90
 	store DTheta
 	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
-	
 	CALL WAIT1
 	CALL WAIT1
-	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
+
 
 Check:
-	;in theta
-	;SUB Circle_beginningAngle
-	;ADD Circle_threshtAngle
-	;JPOS SKIP_DetectReflector
-	IN theta 
-	sub Circle_endAngle
-	JPOS notdone
-	LOADI 1
-	out LEDS
-	IN theta
-	sub Circle_beginningAngle
-	JNEG notdone
-	LOADI
-	Jump STOPCircle
+	LOAD Circle_DegreeCount ;check if the bot has circled more than 360 degrees. If so, stop
+	ADDI -360
+	JPOS CircleStop
 	
-notdone:	
+	
+	in theta
+	SUB Circle_beginningAngle
+	ADD Circle_threshtAngle
+	JPOS SKIP_DetectReflector
 	CALL DetectReflector
 
 SKIP_DetectReflector:	
@@ -357,6 +348,11 @@ ROTATE:
 	IN theta
 	SUB	ANGLEcircle
 	STORE DTheta
+	
+	;update DegreeCount
+	Load Circle_DegreeCount
+	Add ANGLEcircle
+	
 	JUMP CHECK
 	
 SLIGHTROTATE:
@@ -365,14 +361,18 @@ SLIGHTROTATE:
 	IN theta
 	SUB	ANGLESlight
 	STORE DTheta
+	
+	;update DegreeCount
+	Load Circle_DegreeCount
+	Add ANGLESlight
+	
 	JUMP CHECK
 	
-STOPCircle:
-	AND zero
-	store DVEL
 	
+CircleStop:
+	LOAD Zero
+	Store DVel
 	
-
 RETURN
 
 ;***********************************************************
@@ -388,11 +388,9 @@ DetectReflector:
 	JPOS DetectReflector_Skip
 	LOAD DetectReflector_currentDistance
 	STORE DetectReflector_minDistance
-	OUT SSEG2
 	IN theta
 	ADD Deg90
 	Store DetectReflector_minAngle
-	OUT SSEG1
 
 DetectReflector_Skip:
 	Return
@@ -1018,7 +1016,7 @@ Mask6:    DW &B01000000
 Mask7:    DW &B10000000
 LowByte:  DW &HFF      ; binary 00000000 1111111
 LowNibl:  DW &HF       ; 0000 0000 0000 1111
-InitialMask: DW &B00001100
+InitialMask: DW &B00011110
 
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
