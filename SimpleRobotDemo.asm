@@ -102,7 +102,15 @@ Main:
 	CALL WAIT1
 	CALL TowardReflector
 	CALL WAIT1
-	CALL Circle
+	LOADI -120
+	STORE CircleTimer
+	CALL CircleFast
+	CALL WAIT1
+	CALL TowardReflector
+	LOADI -900
+	STORE CircleTimer
+	CALL  CircleFast
+	
 	
 EXIT: 
 	JUMP EXIT
@@ -288,92 +296,71 @@ TowardReflector:
 
 ;**********************************************************************************************
 
-SPEEDcircle: DW 200;200
-ROTATESPEED: DW 250;150
-ANGLEcircle: DW 12;5
-ANGLESlight: DW 10;2
-oneANDTHIRD: DW 340;380
-Circle_threshtAngle: DW 30
-Circle_beginningAngle: DW 0
-Circle:
-	LOAD ft5
-	store DetectReflector_minDistance
+SPEEDcircleFast: DW 250;200
+ROTATESPEEDFast: DW 200;150
+ANGLEcircleFast: DW 40;5
+ANGLESlightFast: DW 30;2
+oneANDTHIRDFast: DW 340;380
+CircleTimer:	 DW 1000
+
+CircleFast:
 	LOAD Mask5
-	ADDI 1
 	OUT SONAREN
-	CALL WAIT1
 	IN theta
 	Add Deg90
 	store DTheta
-	store Circle_beginningAngle
 	CALL WAIT1
 	CALL WAIT1
+	LOAD Zero
+	OUT TIMER
 
-
-Check:
-	in theta
-	SUB Circle_beginningAngle
-	ADD Circle_threshtAngle
-	JPOS SKIP_DetectReflector
-	CALL DetectReflector
-
-SKIP_DetectReflector:	
+CheckFast:	
+	IN TIMER
+	ADDI CircleTimer
+	JPOS STOPCircle
 	IN DIST5
-	SUB oneANDTHIRD
-	JPOS ROTATE
+	SUB oneANDTHIRDFast
+	JPOS ROTATEFast
 	IN DIST5
-	SUB FT1
-	JPOS SLIGHTROTATE
-	JUMP FORWARD
-		
+	SUB Ft1
+	JPOS SLIGHTROTATEFast
+	JUMP FORWARDFast
+
 	
-FORWARD:
-	LOAD SPEEDcircle
+FORWARDFast:
+	LOAD SPEEDcircleFast
 	STORE DVEL
 	IN theta
 	STORE DTheta
-	JUMP CHECK
-ROTATE:
-	LOAD ROTATESPEED
+	JUMP CheckFast
+ROTATEFast:
+	LOAD ROTATESPEEDFast
 	STORE DVEL
 	IN theta
-	SUB	ANGLEcircle
+	SUB	ANGLEcircleFast
 	STORE DTheta
-	JUMP CHECK
+	JUMP CHECKFast
 	
-SLIGHTROTATE:
-	LOAD ROTATESPEED
+SLIGHTROTATEFast:
+	LOAD ROTATESPEEDFast
 	STORE DVEL
 	IN theta
-	SUB	ANGLESlight
+	SUB	ANGLESlightFast
 	STORE DTheta
-	JUMP CHECK
+	JUMP CHECKFast
 	
-	
+STOPCircle:
+	LOAD ZERO
+	STORE DVEL
+	IN THETA
+	ADDI 45
+	STORE DTHETA
 
 RETURN
 
 ;***********************************************************
-
-
-DetectReflector_minDistance: DW 0
-DetectReflector_currentDistance: DW 0
-DetectReflector_minAngle: DW 0
-DetectReflector:
-	IN DIST0
-	STORE DetectReflector_currentDistance
-	SUB DetectReflector_minDistance
-	JPOS DetectReflector_Skip
-	LOAD DetectReflector_currentDistance
-	STORE DetectReflector_minDistance
-	IN theta
-	ADD Deg90
-	Store DetectReflector_minAngle
-
-DetectReflector_Skip:
-	Return
 	
-	
+
 	
 	
 	
@@ -999,7 +986,7 @@ InitialMask: DW &B00011110
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
 HalfMeter: DW 481      ; ~0.5m in 1.04mm units
-FT1:	  DW 293
+Ft1:	  DW 293
 Ft2:      DW 586       ; ~2ft in 1.04mm units
 Ft3:      DW 879
 Ft4:      DW 1172
