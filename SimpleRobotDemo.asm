@@ -102,7 +102,24 @@ Main:
 	CALL WAIT1
 	CALL TowardReflector
 	CALL WAIT1
+	LOADI -115
+	STORE Circle_timer
 	CALL Circle
+	
+	
+	LOAD InitialMask
+	OUT SONAREN
+	Call Wait1
+	Call FINDMINANDROTATE
+	STORE Distance_TR
+	CALL WAIT1
+	CALL WAIT1
+	CALL TowardReflector
+	CALL WAIT1
+	LOADI -1000
+	STORE Circle_timer
+	CALL Circle
+	
 	
 EXIT: 
 	JUMP EXIT
@@ -251,7 +268,7 @@ TowardReflector:
 	;Store DTHETA ;turn the DE2Bot so that its facing the reflector
 	
 	LOAD Distance_TR
-	ADDI -100 ; subtract 1 ft.
+	ADDI -90 ; subtract 1 ft.
 	STORE DesiredTravelDist
 	
 	;***page 12 of DE2 Manual*** 
@@ -288,51 +305,47 @@ TowardReflector:
 
 ;**********************************************************************************************
 
-SPEEDcircle: DW 200;200
-ROTATESPEED: DW 250;150
-ANGLEcircle: DW 12;5
-ANGLESlight: DW 10;2
+SPEEDcircle: DW 275;200
+ROTATESPEED: DW 350;250
+ANGLEcircle: DW 20;12
+ANGLESlight: DW 15;10
 oneANDTHIRD: DW 340;380
 Circle_threshtAngle: DW 30
 Circle_beginningAngle: DW 0
-Circle_endAngle: DW 0
+Circle_DegreeCount: DW 0
+Circle_timer: DW 0
+
 Circle:
+	LOAD Zero ;initialize degreecount to zero whenever circle is called
+	Store Circle_DegreeCount
 	LOAD ft5
 	store DetectReflector_minDistance
 	LOAD Mask5
 	ADDI 1
 	OUT SONAREN
-	CALL WAIT1
+	;CALL WAIT1
 	IN theta
 	Add Deg90
 	store DTheta
 	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
-	
 	CALL WAIT1
+	LOAD zero
+	out timer
 	CALL WAIT1
-	store Circle_beginningAngle
-	addi 5
-	store Circle_endAngle
+
 
 Check:
-	;in theta
-	;SUB Circle_beginningAngle
-	;ADD Circle_threshtAngle
-	;JPOS SKIP_DetectReflector
-	IN theta 
-	sub Circle_endAngle
-	JPOS notdone
-	LOADI 1
-	out LEDS
-	IN theta
-	sub Circle_beginningAngle
-	JNEG notdone
-	LOADI
-	Jump STOPCircle
+	;LOAD Circle_DegreeCount ;check if the bot has circled more than 360 degrees. If so, stop
+	;ADDI -360
+	;JPOS CircleStop
+	in timer
+	add Circle_timer
+	JPOS CircleStop
 	
-notdone:	
+	in theta
+	SUB Circle_beginningAngle
+	ADD Circle_threshtAngle
+	JPOS SKIP_DetectReflector
 	CALL DetectReflector
 
 SKIP_DetectReflector:	
@@ -357,6 +370,11 @@ ROTATE:
 	IN theta
 	SUB	ANGLEcircle
 	STORE DTheta
+	
+	;update DegreeCount
+	;Load Circle_DegreeCount
+	;Add ANGLEcircle
+	
 	JUMP CHECK
 	
 SLIGHTROTATE:
@@ -365,14 +383,18 @@ SLIGHTROTATE:
 	IN theta
 	SUB	ANGLESlight
 	STORE DTheta
+	
+	;update DegreeCount
+	;Load Circle_DegreeCount
+	;Add ANGLESlight
+	
 	JUMP CHECK
 	
-STOPCircle:
-	AND zero
-	store DVEL
 	
+CircleStop:
+	LOAD Zero
+	Store DVel
 	
-
 RETURN
 
 ;***********************************************************
@@ -388,11 +410,9 @@ DetectReflector:
 	JPOS DetectReflector_Skip
 	LOAD DetectReflector_currentDistance
 	STORE DetectReflector_minDistance
-	OUT SSEG2
 	IN theta
 	ADD Deg90
 	Store DetectReflector_minAngle
-	OUT SSEG1
 
 DetectReflector_Skip:
 	Return
@@ -1018,7 +1038,7 @@ Mask6:    DW &B01000000
 Mask7:    DW &B10000000
 LowByte:  DW &HFF      ; binary 00000000 1111111
 LowNibl:  DW &HF       ; 0000 0000 0000 1111
-InitialMask: DW &B00001100
+InitialMask: DW &B00001110
 
 ; some useful movement values
 OneMeter: DW 961       ; ~1m in 1.04mm units
