@@ -59,10 +59,12 @@ WaitForUser:
 	JPOS   WaitForUser ; not ready (KEYs are active-low, hence JPOS)
 	LOAD   Zero
 	OUT    XLEDS       ; clear LEDs once ready to continue
+	
 
 ;***************************************************************
 ;* Main code
 ;***************************************************************
+main_timer: dw 0
 Main:
 	OUT    RESETPOS    ; reset the odometry to 0,0,0
 	; configure timer interrupt for the movement control code
@@ -102,10 +104,28 @@ Main:
 	CALL WAIT1
 	CALL TowardReflector
 	CALL WAIT1
-	LOADI -115
+	Load ANGLE_FMR
+	Call abs
+	addi 115
 	STORE Circle_timer
 	CALL Circle
 	
+	
+	LOAD InitialMask
+	OUT SONAREN
+	Call Wait1
+	Call FINDMINANDROTATE
+
+	STORE Distance_TR
+	CALL WAIT1
+	CALL WAIT1
+	CALL TowardReflector
+	CALL WAIT1
+	Load ANGLE_FMR
+	Call abs
+	addi 115
+	STORE Circle_timer
+	CALL Circle
 	
 	LOAD InitialMask
 	OUT SONAREN
@@ -339,7 +359,7 @@ Check:
 	;ADDI -360
 	;JPOS CircleStop
 	in timer
-	add Circle_timer
+	sub Circle_timer
 	JPOS CircleStop
 	
 	in theta
